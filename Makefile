@@ -103,8 +103,12 @@ build-all: buildx-create
 .PHONY: create-kind-cluster
 create-kind-cluster:
 	docker pull kindest/node:v$(TOOLS_KIND_IMAGE_VERSION) || true
-	kind create cluster --name $(KIND_CLUSTER_NAME) --image kindest/node:v$(TOOLS_KIND_IMAGE_VERSION) --config ./scripts/kind/kind-config.yaml
-	sh ./scripts/kind/setup-metallb.sh
+	@if kind get clusters | grep -qx $(KIND_CLUSTER_NAME); then \
+		echo "Kind cluster '$(KIND_CLUSTER_NAME)' already exists; skipping create."; \
+	else \
+		kind create cluster --name $(KIND_CLUSTER_NAME) --image kindest/node:v$(TOOLS_KIND_IMAGE_VERSION) --config ./scripts/kind/kind-config.yaml; \
+	fi
+	bash ./scripts/kind/setup-metallb.sh
 
 .PHONY: use-kind-cluster
 use-kind-cluster:
@@ -256,7 +260,7 @@ helm-install-provider: helm-version check-openai-key
 		--history-max 2    \
 		--timeout 5m 			\
 		--kube-context kind-$(KIND_CLUSTER_NAME) \
-		--version 0.1.2 \
+		--version 0.1.3 \
 		--wait
 	helm $(HELM_ACTION) kagent-crds helm/kagent-crds \
 		--namespace kagent \
